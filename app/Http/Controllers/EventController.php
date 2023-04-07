@@ -36,9 +36,16 @@ class EventController extends Controller
 
     public function create(CreateEventRequest $request): JsonResponse
     {
+        $event = $this->createEvent->execute($request->validated());
+
         return response()->json(
-            $this->createEvent->execute($request->validated()),
-            Response::HTTP_CREATED
+            $event ?? [
+            'status' => false,
+            'message' => 'Something wrong has happened. Please, try again later.'
+        ],
+            $event
+                ? Response::HTTP_CREATED
+                : Response::HTTP_EXPECTATION_FAILED
         );
     }
 

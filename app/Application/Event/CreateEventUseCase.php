@@ -4,9 +4,8 @@ namespace App\Application\Event;
 
 use App\Domain\Event\Event;
 use App\Domain\Event\EventRepository;
-use Exception;
+use App\Infra\Exceptions\ImageUploadErrorException;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class CreateEventUseCase
 {
@@ -16,13 +15,22 @@ class CreateEventUseCase
     {
     }
 
-    public function execute(array $data): Event
+    public function execute(array $data): Event|null
     {
         $loggedUser = auth()->user();
-        $storagedImage = Storage::putFile('events/' . Str::uuid(), $data['image']);
 
-        if (!$storagedImage) {
-            throw new Exception('Image upload failed. Something wrong has happened.', 500);
+        try {
+            $storagedImage = Storage::putFile('events/feature-images', $data['image']);
+
+            if (!$storagedImage) {
+                throw new ImageUploadErrorException(
+                    'Image upload failed. Something wrong has happened.',
+                    500
+                );
+            }
+        } catch (ImageUploadErrorException $ex) {
+            report($ex);
+            return null;
         }
 
         $data['image_url'] = Storage::path($storagedImage);
