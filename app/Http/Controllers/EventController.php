@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Application\Event\CreateEventUseCase;
 use App\Application\Event\DeleteEventUseCase;
 use App\Application\Event\GetAllEventsUseCase;
+use App\Application\Event\GetOneEventUseCase;
 use App\Application\Event\UpdateEventUseCase;
 use App\Domain\Event\Event;
 use App\Http\Requests\Event\CreateEventRequest;
@@ -20,6 +21,7 @@ class EventController extends Controller
         private readonly UpdateEventUseCase  $updateEvent,
         private readonly DeleteEventUseCase  $deleteEvent,
         private readonly GetAllEventsUseCase $getAllEvents,
+        private readonly GetOneEventUseCase  $getOneEvent
     )
     {
     }
@@ -27,7 +29,7 @@ class EventController extends Controller
     public function one(Event $event): JsonResponse
     {
         return response()->json(
-            $event->load('user', 'photos'),
+            $this->getOneEvent->execute($event),
             Response::HTTP_OK
         );
     }
