@@ -10,39 +10,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Connect to remote SSH
-      uses: webfactory/ssh-agent@v0.5.1
-      with:
-        ssh-private-key: ${{ secrets.PLOI_STAGING_SSH_KEY }}
-
-    - name: Define a tag
-      run: echo "DEPLOYTAG=$(date +%Y%m%d_%H%M%S)" >> $GITHUB_ENV && echo "Starting deploy ${DEPLOYTAG}"
-
-    - name: Clone repository
-      run: git clone --branch staging --depth 1 git@github.com:user/repo.git /home/ploi/roadie.internal.eventue.com.br-deploy/roadie.internal.eventue.com.br/$DEPLOYTAG
-
-    - name: Install dependencies
-      run: |
-        cd /home/ploi/roadie.internal.eventue.com.br-deploy/roadie.internal.eventue.com.br/$DEPLOYTAG
-        composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
-        echo "" | sudo -S service php8.2-fpm reload
-
-    - name: Optimize Deploy
-      run: |
-        php artisan clear-compiled
-        php artisan optimize
-        php artisan config:clear
-        php artisan config:cache
-        php artisan route:clear
-        php artisan route:cache
-
-    - name: Run migrations and restart queues
-      run: |
-        php artisan migrate --force
-        php artisan queue:restart
-
-    - name: Recreate the symlink
-      run: ln -s /home/ploi/roadie.internal.eventue.com.br-deploy/roadie.internal.eventue.com.br/$DEPLOYTAG /home/ploi/roadie.internal.eventue.com.br
+      - name: Connect to remote SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: roadie.internal.eventue.com.br
+          username: ploi
+          key: ${{ secrets.PLOI_STAGING_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            DEPLOYTAG=$(date '+%Y%m%d_%H%M%S')
+            echo "Starting deploy ${DEPLOYTAG}"
+            git clone --branch staging --depth 1 git@github.com:user/repo.git /home/ploi/roadie.internal.eventue.com.br-deploy/roadie.internal.eventue.com.br/$DEPLOYTAG
+            cd /home/ploi/roadie.internal.eventue.com.br-deploy/roadie.internal.eventue.com.br/$DEPLOYTAG
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+            echo "" | sudo -S service php8.2-fpm reload
+            php artisan clear-compiled
+            php artisan optimize
+            php artisan config:clear
+            php artisan config:cache
+            php artisan route:clear
+            php artisan route:cache
+            php artisan migrate --force
+            php artisan queue:restart
+            ln -s /home/ploi/roadie.internal.eventue.com.br-deploy/roadie.internal.eventue.com.br/$DEPLOYTAG /home/ploi/roadie.internal.eventue.com.br
