@@ -1,0 +1,42 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Connect to remote SSH
+      uses: webfactory/ssh-agent@v0.5.1
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Clone repository
+      run: git clone --branch staging --depth 1 git@github.com:user/repo.git /home/ploi/temp-release
+
+    - name: Install dependencies
+      run: |
+        cd /home/ploi/temp-release
+        composer install --no-dev --no-interaction --prefer-dist
+
+    - name: Optimize Deploy
+      run: |
+        php artisan config:clear
+        php artisan config:cache
+        php artisan route:clear
+        php artisan route:cache
+
+    - name: Prepare to delete old release folder
+      run: |
+        mv /home/ploi/release /home/ploi/deletable-release
+        mv /home/ploi/temp-release /home/ploi/release
+
+    - name: Delete old release folder
+      run: rm -rf /home/ploi/deletable-release
